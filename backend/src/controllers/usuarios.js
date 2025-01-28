@@ -2,22 +2,10 @@ const knex = require('../database/connection');
 const bcrypt = require('bcrypt')
 
 const cadastrarUsuario = async (req, res) => {
-    const {username, senha, email} = req.body;
+    const {username, senha, email, nome} = req.body;
 
-    if (!username) {
-        return res.status(400).json('O campo username é obrigatório');
-    }
-
-    if (!email) {
-        return res.status(400).json('O campo email é obrigatório');
-    }
-
-    if (!senha) {
-        return res.status(400).json('O campo senha é obrigatório');
-    }
-
-    if (senha.length < 5) {
-        return res.status(400).json('A senha deve conter, no mínimo, 5 caracteres.');
+    if (!username || !nome || !email || !senha || senha.length < 5) {
+        return res.status(400).json('Campo obrigatório não preenchido');
     }
 
     try {
@@ -37,6 +25,7 @@ const cadastrarUsuario = async (req, res) => {
 
         const usuario = await knex('usuarios').insert({
             username,
+            nome,
             email,
             senha: senhaCriptografada
         });
@@ -45,9 +34,10 @@ const cadastrarUsuario = async (req, res) => {
             return res.status(400).json('O usuário nao foi cadastrado');
         }
 
-        return res.status(200).json('Usuário cadastrado com sucesso');
+        return res.status(201).json('Usuário cadastrado com sucesso');
     } catch (error) {
-        return res.status(400).json(error.message);
+        console.log(error.message)
+        return res.status(500).json(error.message);
     }
 }
 

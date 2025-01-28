@@ -1,28 +1,46 @@
 const knex = require('../database/connection');
+const multer = require('multer');
+const path = require('path');
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/'); // Certifique-se de que a pasta existe
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + path.extname(file.originalname)); // Nome único para cada arquivo
+    }
+});
+
+const upload = multer({ storage: storage });
 
 const novaPostagem = async (req,res) => {
     const {id} = req.usuario;
+    const {texto} = req.body;
 
-    const {texto, fotos} = req.body;
-
-    if (!fotos || fotos.lenght === 0) {
+    if (!req.files || req.files.length === 0) {
         return res.status(400).json('É preciso informar pelo menos uma imagem');
     }
 
+    
     try {
-        const postagem = await knex('postagens').insert({texto, usuario_id: id}).returning('*');
+        const postagem = await knex('postagens')
+        .insert({texto, usuario_id: id})
+        .returning('*');
         
         if (!postagem) {
             return res.status(400).json('Não foi possível concluir a postagem');
         }
 
-        for (const foto of fotos) {
-            foto.postagem_id = postagem[0].id
-        }
+        const fotos = req.files.map(file => ({
+            postagem_id: postagem[0].id,
+            url: file.path,
+            nome: file.filename,
+            imagem: file.filename
+        }));
 
         const fotosCadastradas = await knex('postagem_fotos').insert(fotos);
 
-        if (!fotosCadastradas) {
+        if (!fotosCadastradas || fotosCadastradas.length === 0) {
             await knex('postagens').where({ id: postagem[0].id }).del();
             return res.status(400).json('Não foi possível concluir a postagem');
         }
@@ -32,6 +50,8 @@ const novaPostagem = async (req,res) => {
         return res.status(400).json(error.message)
     }
 }
+
+const uploadFotos = upload.array('fotos');
 
 const curtir = async (req, res) => {
     const { id } = req.usuario;
@@ -159,5 +179,7 @@ module.exports = {
     novaPostagem,
     curtir,
     comentar,
-    feed
+    feed,
+    uploadFotos
+
 }
