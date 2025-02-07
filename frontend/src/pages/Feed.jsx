@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, CircularProgress } from '@mui/material';
 import Post from '../components/Post';
+import NovoPost from "../components/NovoPost"
 import api from '../services/api';
 import { toast } from 'react-toastify';
 
@@ -21,6 +22,10 @@ const Feed = () => {
     }
   };
 
+  const buscarPostagens = () => {
+    fetchPosts(); // Essa função será chamada quando um novo post for criado
+  };
+
   useEffect(() => {
     fetchPosts();
   }, []);
@@ -35,6 +40,9 @@ const Feed = () => {
 
   return (
     <Box>
+      {/* Componente NovoPost deve ser renderizado dentro do JSX */}
+      <NovoPost onPostCriado={buscarPostagens} />
+      
       {posts.map((post) => (
         <Post key={post.id} post={post} onUpdate={fetchPosts} />
       ))}

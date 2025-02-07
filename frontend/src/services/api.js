@@ -1,36 +1,48 @@
-import axios from 'axios';
-import { toast } from 'react-toastify';
+const API_URL = 'http://localhost:3000';
 
-const api = axios.create({
-  baseURL: 'http://localhost:3000'
-});
+export async function login(email, password) {
+  const response = await fetch(`${API_URL}/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ login: email, senha: password }),
+  });
 
-// Request interceptor
-api.interceptors.request.use((config) => {
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.erro || 'Failed to login');
+  }
+
+  return response.json();
+}
+
+export async function fetchPosts() {
   const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  
+  if (!token) {
+    throw new Error('No authentication token');
   }
-  return config;
-}, (error) => {
-  return Promise.reject(error);
-});
 
-// Response interceptor
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Only redirect if we're not already on the login page
-      if (!window.location.pathname.includes('/login')) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('usuario');
-        window.location.href = '/login';
-        toast.error('Sessão expirada. Por favor, faça login novamente.');
-      }
+  const response = await fetch(`${API_URL}/postagens`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('usuario');
+      window.location.href = '/login';
+      throw new Error('Session expired. Please login again.');
     }
-    return Promise.reject(error);
+    const error = await response.json();
+    throw new Error(error.erro || 'Failed to fetch posts');
   }
-);
 
-export default api;
+  const data = await response.json();
+  console.log('Posts fetched:', data); // Debug log
+  return data;
+}

@@ -17,7 +17,15 @@ import { ptBR } from 'date-fns/locale';
 import api from '../services/api';
 import { toast } from 'react-toastify';
 
-const Post = ({ post, onUpdate }) => {
+const Post = ({ post = {}, onUpdate }) => {
+  // Verificação para garantir que post não seja undefined
+  if (!post || !post.usuario) {
+    console.log("Post inválido:", post);
+    return null; // Ou um loader: <p>Carregando post...</p>
+  }
+
+  console.log("Dados do post:", post); // Depuração
+
   const [comentario, setComentario] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -50,17 +58,17 @@ const Post = ({ post, onUpdate }) => {
     <Card sx={{ mb: 2, borderRadius: 2 }}>
       <CardHeader
         avatar={
-          <Avatar src={post.usuario.avatar} alt={post.usuario.nome}>
-            {post.usuario.nome[0]}
+          <Avatar src={post.usuario?.avatar} alt={post.usuario?.nome}>
+            {post.usuario?.nome ? post.usuario.nome[0] : "?"}
           </Avatar>
         }
-        title={post.usuario.nome}
-        subheader={formatDistanceToNow(new Date(post.created_at), {
+        title={post.usuario?.nome || "Usuário desconhecido"}
+        subheader={post.created_at ? formatDistanceToNow(new Date(post.created_at), {
           addSuffix: true,
           locale: ptBR,
-        })}
+        }) : "Data desconhecida"}
       />
-      
+
       {post.imagem && (
         <CardMedia
           component="img"
@@ -81,18 +89,24 @@ const Post = ({ post, onUpdate }) => {
 
       <CardContent>
         <Typography variant="body2" color="text.secondary">
-          {post.curtidas} curtidas
-        </Typography>
-        
-        <Typography variant="body1" component="p" sx={{ mt: 1 }}>
-          <strong>{post.usuario.nome}</strong> {post.texto}
+          {post.curtidas || 0} curtidas
         </Typography>
 
-        {post.comentarios?.map((comentario) => (
-          <Typography key={comentario.id} variant="body2" sx={{ mt: 1 }}>
-            <strong>{comentario.usuario.nome}</strong> {comentario.texto}
+        <Typography variant="body1" component="p" sx={{ mt: 1 }}>
+          <strong>{post.usuario?.nome || "Usuário"}</strong> {post.texto || ""}
+        </Typography>
+
+        {Array.isArray(post.comentarios) && post.comentarios.length > 0 ? (
+          post.comentarios.map((comentario) => (
+            <Typography key={comentario.id} variant="body2" sx={{ mt: 1 }}>
+              <strong>{comentario.usuario?.nome || "Anônimo"}</strong> {comentario.texto}
+            </Typography>
+          ))
+        ) : (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Nenhum comentário ainda.
           </Typography>
-        ))}
+        )}
 
         <Box component="form" onSubmit={handleComentar} sx={{ mt: 2, display: 'flex' }}>
           <TextField

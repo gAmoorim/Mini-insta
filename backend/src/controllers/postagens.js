@@ -20,7 +20,6 @@ const novaPostagem = async (req,res) => {
     if (!req.files || req.files.length === 0) {
         return res.status(400).json('É preciso informar pelo menos uma imagem');
     }
-
     
     try {
         const postagem = await knex('postagens')
@@ -127,47 +126,47 @@ const feed = async (req, res) => {
 
     const o = offset ? offset : 0;
 
-    try {
-        //const postagens = knex('postagens').limit(10).offset(pagina);
-        const postagens = await knex('postagens')
-        .where('usuario_id', "!=", id)
-        .limit(10)
-        .offset(o);
+  try {
+    //const postagens = knex('postagens').limit(10).offset(pagina);
+    const postagens = await knex('postagens')
+    .where('usuario_id', "!=", id)
+    .limit(10)
+    .offset(o);
 
-        if (postagens.length === 0) {
-            return res.status(200).json(postagens)
-        }
+    if (postagens.length === 0) {
+        return res.status(200).json(postagens)
+    }
 
-        for (const postagem of postagens) {
-            // usuario
-            const usuario = await knex('usuarios')
-            .where({ id: postagem.usuario_id})
-            .select('imagem', 'username', 'verificado')
-            .first();
-            postagem.usuario = usuario;
+    for (const postagem of postagens) {
+        // usuario
+        const usuario = await knex('usuarios')
+        .where({ id: postagem.usuario_id})
+        .select('imagem', 'username', 'verificado')
+        .first();
+        postagem.usuario = usuario;
 
-            //fotos
-            const fotos = await knex('postagem_fotos')
-            .where({postagem_id: postagem.id})
-            .select('imagem');
-            postagem.fotos = fotos;
+        //fotos
+        const fotos = await knex('postagem_fotos')
+        .where({ postagem_id: postagem.id })
+        .select('imagem');
+        postagem.fotos = fotos.map(foto => foto.imagem);  // Transformando em array de URLs
 
-            //curtidas
-            const curtidas = await knex('postagem_curtidas')
-            .where({postagem_id: postagem.id})
-            .select('usuario_id');
-            postagem.curtidas = curtidas.length;
+        //curtidas
+        const curtidas = await knex('postagem_curtidas')
+        .where({postagem_id: postagem.id})
+        .select('usuario_id');
+        postagem.curtidas = curtidas.length;
 
-            // curtido por mim
-            postagem.curtidoPorMim = curtidas.find(curtida => curtida.usuario_id === id) ? true : false;
+        // curtido por mim
+        postagem.curtidoPorMim = curtidas.find(curtida => curtida.usuario_id === id) ? true : false;
 
-            //comentarios
-            const comentarios = await knex('postagem_comentarios')
-            .leftJoin('usuarios', 'usuarios.id', 'postagem_comentarios.usuario_id')
-            .where({postagem_id: postagem.id})
-            .select('usuarios.username', 'postagem_comentarios.texto')
-            postagem.comentarios = comentarios;
-        }
+        //comentarios
+        const comentarios = await knex('postagem_comentarios')
+        .leftJoin('usuarios', 'usuarios.id', 'postagem_comentarios.usuario_id')
+        .where({postagem_id: postagem.id})
+        .select('usuarios.username', 'postagem_comentarios.texto')
+        postagem.comentarios = comentarios;
+    }
 
         return res.status(200).json(postagens)
     } catch (error) {
